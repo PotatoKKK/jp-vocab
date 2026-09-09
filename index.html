@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#0b1220"/>
+<meta name="theme-color" content="#16110e"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>日語單詞</title>
 <link rel="manifest" href="manifest.json"/>
 <style>
@@ -11,21 +12,21 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Hiragino Mincho ProN","Songti TC","Noto Serif TC",serif}
 body{display:flex;flex-direction:column;min-height:100dvh}
-.appbar{padding:calc(12px + env(safe-area-inset-top)) 18px 10px;display:flex;justify-content:space-between;align-items:center}
-.appbar h1{font-size:15px;margin:0;letter-spacing:.12em;color:var(--accent-2)}
+.appbar{padding:calc(12px + env(safe-area-inset-top)) 18px 8px;display:flex;justify-content:space-between;align-items:center}
+.appbar h1{font-size:14px;margin:0;letter-spacing:.14em;color:var(--accent-2);font-weight:600}
 .icon-btn{background:var(--paper);border:1px solid var(--line);color:var(--ink);width:40px;height:40px;border-radius:12px}
-main{flex:1;display:flex;flex-direction:column;padding:8px 18px 20px}
-.card{flex:1;background:linear-gradient(180deg,#31261f,#241c17);border:1px solid var(--line);border-radius:28px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:28px 22px;min-height:40vh}
+main{flex:1;display:flex;flex-direction:column;padding:4px 18px 16px}
+.card{flex:1;background:linear-gradient(180deg,#31261f,#241c17);border:1px solid var(--line);border-radius:28px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:32px 22px;min-height:52vh}
 .meta{font-size:12px;letter-spacing:.2em;color:var(--muted);margin-bottom:18px}
-.kanji{font-size:clamp(36px,10vw,64px);margin:0 0 10px}
+.kanji{font-size:clamp(42px,12vw,72px);margin:0 0 10px;line-height:1.15}
 .kana{font-size:20px;color:var(--accent-2);margin:0 0 22px}
 .zh{font-size:22px;margin:0;font-family:"PingFang TC","Noto Sans TC",sans-serif}
 .zh.hidden{filter:blur(10px)}
-.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px}
 .btn{border:0;border-radius:16px;padding:14px 8px;font-size:15px;font-family:"PingFang TC",sans-serif}
 .btn.primary{background:var(--accent);color:#fff}
 .btn.ghost{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
-nav{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:8px 10px calc(14px + env(safe-area-inset-bottom))}
+nav{display:grid;grid-template-columns:1fr 1fr 1fr;padding:8px 10px calc(14px + env(safe-area-inset-bottom))}
 nav button{background:0;border:0;color:var(--muted);padding:10px 4px;font-family:"PingFang TC",sans-serif}
 nav button.on{color:var(--accent-2)}
 .screen{display:none;flex:1;flex-direction:column;min-height:0}
@@ -33,22 +34,7 @@ nav button.on{color:var(--accent-2)}
 .group{display:flex;justify-content:space-between;align-items:center;padding:16px 4px;border-bottom:1px solid var(--line);font-family:"PingFang TC",sans-serif}
 .check{width:26px;height:26px;border:2px solid var(--muted);border-radius:6px;display:grid;place-items:center;color:transparent}
 .check.on{background:var(--ok);border-color:var(--ok);color:#fff}
-.note,.hint{font-family:"PingFang TC",sans-serif;color:var(--muted);font-size:12px;padding:10px 18px 0;line-height:1.5}
-#desktop{background:#070b14;padding:0}
-.phone{flex:1;margin:8px 14px 0;border-radius:36px;background:linear-gradient(160deg,#1b3a5c,#0c1a2e);overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.status{display:flex;justify-content:space-between;padding:14px 22px 0;font-family:"PingFang TC",sans-serif;font-size:12px;color:#e8eef8}
-.clock-wrap{text-align:center;padding:18px 0 8px;color:#fff}
-.time{font-size:56px;font-weight:300;letter-spacing:-2px;font-family:"PingFang TC",sans-serif}
-.widget{margin:12px 18px 0;background:rgba(18,22,30,.72);border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:18px;color:#f6f3ee}
-.w-top{display:flex;justify-content:space-between;font-family:"PingFang TC",sans-serif;font-size:11px;color:#e8c07a}
-.w-jp{font-size:34px;margin:12px 0 4px}
-.w-kana{font-size:15px;color:#e8c07a}
-.w-zh{font-family:"PingFang TC",sans-serif;font-size:16px;margin-top:10px}
-.w-bar{display:flex;gap:8px;margin-top:14px}
-.w-bar button{flex:1;border:0;border-radius:999px;padding:8px;background:rgba(255,255,255,.1);color:#fff;font-family:"PingFang TC",sans-serif}
-.dock{margin-top:auto;padding:16px 22px 22px;display:grid;grid-template-columns:repeat(4,1fr)}
-.app-icon{text-align:center;color:#fff;font-family:"PingFang TC",sans-serif;font-size:11px}
-.dot{width:48px;height:48px;border-radius:14px;margin:0 auto 6px;display:grid;place-items:center;font-size:20px}
+.hint{font-family:"PingFang TC",sans-serif;color:var(--muted);font-size:12px;padding:10px 18px 0;line-height:1.5}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#3a2e26;padding:10px 14px;border-radius:999px;font-size:13px;display:none;font-family:"PingFang TC",sans-serif}
 .file-btn{display:block;width:100%;margin-top:8px}
 .panel p{font-family:"PingFang TC",sans-serif;color:var(--muted);line-height:1.6}
@@ -56,27 +42,7 @@ nav button.on{color:var(--accent-2)}
 </head>
 <body>
 <header class="appbar"><h1>日語單詞</h1><button class="icon-btn" id="speakBtn">♪</button></header>
-<section id="desktop" class="screen on">
-<p class="note">這是網頁預覽。中間卡片模擬主畫面 Widget。底欄可切到單詞／Groups。</p>
-<div class="phone">
-<div class="status"><span>中國移動</span><span id="liveClock">--:--</span></div>
-<div class="clock-wrap"><div class="time" id="bigTime">--:--</div></div>
-<div class="widget">
-<div class="w-top"><span>日語單詞</span><span id="wGroup">—</span></div>
-<div class="w-jp" id="wJp">載入中</div>
-<div class="w-kana" id="wKana"></div>
-<div class="w-zh" id="wZh"></div>
-<div class="w-bar"><button id="wReveal">隱藏意思</button><button id="wNext">換一個</button></div>
-</div>
-<div class="dock">
-<div class="app-icon"><div class="dot" style="background:#3b82f6">☎</div>電話</div>
-<div class="app-icon"><div class="dot" style="background:#22c55e">💬</div>訊息</div>
-<div class="app-icon" id="openApp"><div class="dot" style="background:#c45c26">あ</div>單詞</div>
-<div class="app-icon"><div class="dot" style="background:#64748b">📷</div>相機</div>
-</div>
-</div>
-</section>
-<section id="home" class="screen"><main>
+<section id="home" class="screen on"><main>
 <div class="card" id="card">
 <div class="meta" id="meta">載入中</div>
 <p class="kanji" id="kanji">ようこそ</p>
@@ -85,30 +51,30 @@ nav button.on{color:var(--accent-2)}
 </div>
 <div class="actions">
 <button class="btn ghost" id="revealBtn">隱藏意思</button>
-<button class="btn primary" id="nextBtn">下一詞</button>
+<button class="btn primary" id="nextBtn">換一個</button>
 <button class="btn ghost" id="againBtn">再出一詞</button>
 </div>
 </main></section>
 <section id="groups" class="screen"><main>
-<p class="hint">勾選的課會進入抽詞</p>
+<p class="hint">勾選的課會出現在解鎖後的單詞裡</p>
 <div id="groupList"></div>
 </main></section>
-<section id="import" class="screen"><main class="panel">
-<p>可匯入 Excel，或還原第13–24課。</p>
+<section id="import" class="screen"><main class="panel" style="padding:8px 18px">
+<p>解鎖後看到單詞：把這個網址加到手機主畫面。真正針在系統主畫面的 Widget 要等 APK。</p>
+<p>可匯入 Excel。課本檔若已上傳，按下方可重載第13–24課。</p>
 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden/>
 <button class="btn primary file-btn" id="pickFile">匯入 Excel</button>
-<button class="btn ghost file-btn" id="resetBtn">還原預設課本詞彙</button>
+<button class="btn ghost file-btn" id="resetBtn">重載課本詞彙</button>
 </main></section>
 <nav>
-<button class="on" data-tab="desktop">桌面</button>
-<button data-tab="home">單詞</button>
+<button class="on" data-tab="home">單詞</button>
 <button data-tab="groups">Groups</button>
 <button data-tab="import">匯入</button>
 </nav>
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-const KEY='jp-vocab-app-v2';
+const KEY='jp-vocab-app-v3';
 const state={data:null,current:null,revealed:true};
 const mem={};
 function sget(k){try{return localStorage.getItem(k)}catch(e){return mem[k]||null}}
@@ -125,25 +91,25 @@ function pickWord(){
 }
 function render(){
   const w=state.current;
-  const set=(id,t)=>document.getElementById(id).textContent=t||'';
+  const set=(id,t)=>{const el=document.getElementById(id);if(el)el.textContent=t||''};
   if(!w){
-    set('wGroup','未選 group');set('wJp','請勾選課次');set('wKana','');set('wZh','');
     set('meta','尚未選擇任何 group');set('kanji','未選詞彙');set('kana','到 Groups 勾選課次');set('zh','');
     return;
   }
   const jp=w.kanji||w.kana;
   const kana=w.kanji&&w.kanji!==w.kana?w.kana:'';
-  set('wGroup',w.groupName);set('wJp',jp);set('wKana',kana);set('wZh',state.revealed?w.zh:'');
-  set('meta',[w.groupName,w.pos].filter(Boolean).join(' · '));set('kanji',jp);set('kana',kana);
+  set('meta',[w.groupName,w.pos].filter(Boolean).join(' · '));
+  set('kanji',jp);set('kana',kana);
   const zh=document.getElementById('zh');zh.textContent=w.zh;zh.classList.toggle('hidden',!state.revealed);
   document.getElementById('revealBtn').textContent=state.revealed?'隱藏意思':'顯示意思';
-  document.getElementById('wReveal').textContent=state.revealed?'隱藏意思':'顯示意思';
 }
 function renderGroups(){
   const box=document.getElementById('groupList');
-  box.innerHTML=(state.data.groups||[]).map(g=>`<div class="group" data-id="${g.id}"><div><div>${g.name}</div><div class="hint" style="padding:0">${(g.words||[]).length} 個單詞</div></div><div class="check ${g.active?'on':''}">✓</div></div>`).join('');
+  const gs=state.data.groups||[];
+  if(!gs.length){box.innerHTML='<p class="hint">還沒有課次檔。請到匯入頁重載或匯入 Excel。</p>';return;}
+  box.innerHTML=gs.map(g=>`<div class="group" data-id="${g.id}"><div><div>${g.name}</div><div class="hint" style="padding:0">${(g.words||[]).length} 個單詞</div></div><div class="check ${g.active?'on':''}">✓</div></div>`).join('');
   box.querySelectorAll('.group').forEach(el=>{
-    el.onclick=()=>{const g=state.data.groups.find(x=>x.id===el.dataset.id);g.active=!g.active;save();renderGroups()};
+    el.onclick=()=>{const g=state.data.groups.find(x=>x.id===el.dataset.id);g.active=!g.active;save();renderGroups();};
   });
 }
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)}
@@ -152,23 +118,11 @@ function speak(){
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(w.speech||w.kana);u.lang='ja-JP';u.rate=.9;speechSynthesis.speak(u);
 }
-function tick(){
-  const n=new Date(),hh=String(n.getHours()).padStart(2,'0'),mm=String(n.getMinutes()).padStart(2,'0');
-  document.getElementById('liveClock').textContent=hh+':'+mm;
-  document.getElementById('bigTime').textContent=hh+':'+mm;
-}
 document.getElementById('card').onclick=()=>{if(!state.current)return;state.revealed=!state.revealed;render()};
 document.getElementById('revealBtn').onclick=e=>{e.stopPropagation();if(!state.current)return;state.revealed=!state.revealed;render()};
-document.getElementById('wReveal').onclick=()=>{if(!state.current)return;state.revealed=!state.revealed;render()};
 document.getElementById('nextBtn').onclick=pickWord;
 document.getElementById('againBtn').onclick=pickWord;
-document.getElementById('wNext').onclick=pickWord;
 document.getElementById('speakBtn').onclick=speak;
-document.getElementById('openApp').onclick=()=>{
-  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='home'));
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  document.getElementById('home').classList.add('on');
-};
 document.querySelectorAll('nav button').forEach(btn=>{
   btn.onclick=()=>{
     document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
@@ -195,21 +149,31 @@ document.getElementById('fileInput').onchange=async e=>{
   state.data.groups.push({id:'g'+Date.now(),name:file.name.replace(/\.\w+$/,''),words,active:true});
   save();renderGroups();pickWord();toast('已匯入 '+words.length+'詞');
 };
-document.getElementById('resetBtn').onclick=()=>{
-  if(window.DEFAULT_VOCAB){state.data=JSON.parse(JSON.stringify(window.DEFAULT_VOCAB));save();renderGroups();pickWord();toast('已還原')}
+document.getElementById('resetBtn').onclick=async()=>{
+  await loadRemote();
+  state.data=JSON.parse(JSON.stringify(window.DEFAULT_VOCAB));
+  save();renderGroups();pickWord();toast('已重載 '+wordCount(state.data)+' 詞');
 };
-async function boot(){
-  try{
-    const ids=[13,14,15,16,17,18,19,20,21,22,23,24];
-    const parts=await Promise.all(ids.map(n=>fetch('./vocab/ch'+n+'.json').then(r=>{if(!r.ok)throw new Error(n);return r.json()})));
-    window.DEFAULT_VOCAB={groups:parts};
-  }catch(e){
-    window.DEFAULT_VOCAB=window.DEFAULT_VOCAB||{groups:[{id:'demo',name:'樣品',active:true,words:[{kana:'がまん',kanji:'我慢',zh:'忍耐、忍受',speech:'がまん'}]}]};
+async function loadRemote(){
+  const ids=[13,14,15,16,17,18,19,20,21,22,23,24];
+  const parts=[];
+  for(const n of ids){
+    try{
+      const r=await fetch('./vocab/ch'+n+'.json');
+      if(r.ok) parts.push(await r.json());
+    }catch(e){}
   }
+  window.DEFAULT_VOCAB={groups:parts};
+}
+async function boot(){
+  await loadRemote();
   let stored=null;try{stored=JSON.parse(sget(KEY)||'null')}catch(e){}
-  state.data=(stored&&wordCount(stored)>0)?stored:JSON.parse(JSON.stringify(window.DEFAULT_VOCAB));
-  if(!stored||wordCount(stored)===0)save();
-  renderGroups();pickWord();tick();setInterval(tick,10000);
+  const remote=wordCount(window.DEFAULT_VOCAB);
+  if(stored&&wordCount(stored)>1) state.data=stored;
+  else if(remote>0) state.data=JSON.parse(JSON.stringify(window.DEFAULT_VOCAB));
+  else state.data={groups:[]};
+  save();
+  renderGroups();pickWord();
 }
 boot();
 </script>
