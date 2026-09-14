@@ -53,11 +53,19 @@ nav button{background:0;border:0;color:var(--muted);padding:12px 4px;font-family
 nav button.on{color:var(--title);font-weight:600}
 .hint{font-family:"Noto Sans TC",sans-serif;color:var(--muted);font-size:14px;padding:0 4px 12px;line-height:1.5}
 .row-btns{display:flex;gap:8px;margin-bottom:12px}
-.group-row{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--line)}
-.group-main{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 4px;border:0;background:transparent;text-align:left;font-family:"Noto Sans TC",sans-serif;color:inherit}
-.del-btn{width:40px;height:40px;flex-shrink:0;border:0;background:transparent;color:var(--muted);border-radius:10px;font-size:18px}
+.group-row{display:flex;align-items:center;gap:2px;border-bottom:1px solid var(--line)}
+.row-icons{display:flex;align-items:center;flex-shrink:0}
+.row-icon{width:36px;height:40px;flex-shrink:0;border:0;background:transparent;color:var(--muted);border-radius:10px;font-size:16px}
+.group-main{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 4px 16px 8px;border:0;background:transparent;text-align:left;font-family:"Noto Sans TC",sans-serif;color:inherit}
 .check{width:26px;height:26px;border:2px solid var(--muted);border-radius:6px;display:grid;place-items:center;color:transparent;flex-shrink:0}
 .check.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.dlg-back{position:fixed;inset:0;z-index:40;display:none;place-items:center;padding:24px;background:rgba(42,27,18,.42)}
+.dlg-back.on{display:grid}
+.dlg{width:min(92vw,340px);padding:22px 20px 16px;border-radius:20px;background:var(--paper);color:var(--ink);box-shadow:0 16px 40px rgba(42,27,18,.22);font-family:"Noto Sans TC",sans-serif}
+.dlg h2{margin:0;font-family:"Noto Serif JP","Songti TC",serif;font-size:1.15rem;color:var(--title)}
+.dlg-sub{margin:8px 0 0;font-size:14px;color:var(--muted);line-height:1.5}
+.dlg-input{display:block;width:100%;margin-top:14px;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f6edd8;color:var(--ink);font-family:"Noto Sans TC",sans-serif;font-size:16px}
+.dlg-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
 .toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#3a2e26;color:#f7f0e0;padding:10px 16px;border-radius:999px;font-size:13px;display:none;font-family:"Noto Sans TC",sans-serif;max-width:min(92vw,360px);text-align:center;z-index:20}
 .panel p{font-family:"Noto Sans TC",sans-serif;color:var(--muted);line-height:1.6;font-size:14px}
 .file-btn{display:block;width:100%;margin-top:10px}
@@ -107,6 +115,9 @@ nav button.on{color:var(--title);font-weight:600}
   <button data-tab="groups">Groups</button>
   <button data-tab="import">匯入</button>
 </nav>
+<div class="dlg-back" id="dlgBack">
+  <div class="dlg" id="dlgBox" role="dialog" aria-modal="true"></div>
+</div>
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -219,12 +230,15 @@ function renderGroups(){
     const label=displayGroupName(g.name);
     const sub=(label!==g.name?g.name+' · ':'')+(g.words||[]).length+' 個單詞';
     return `<div class="group-row" data-id="${g.id}">
+      <div class="row-icons">
+        <button type="button" class="row-icon del-btn" aria-label="刪除"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        <button type="button" class="row-icon rename-btn" aria-label="重新命名"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
+      </div>
       <button type="button" class="group-main">
         <span><span style="display:block;font-weight:500">${label}</span>
         <span class="hint" style="padding:0;font-size:12px">${sub}</span></span>
         <span class="check ${g.active?'on':''}">✓</span>
       </button>
-      <button type="button" class="del-btn" aria-label="刪除">×</button>
     </div>`;
   }).join('');
   box.querySelectorAll('.group-row').forEach(el=>{
@@ -232,12 +246,69 @@ function renderGroups(){
     el.querySelector('.group-main').onclick=()=>{
       const g=state.data.groups.find(x=>x.id===id);g.active=!g.active;save();renderGroups();
     };
-    el.querySelector('.del-btn').onclick=()=>{
-      state.data.groups=state.data.groups.filter(x=>x.id!==id);save();renderGroups();pickWord();
-    };
+    el.querySelector('.del-btn').onclick=()=>askDelete(id,1);
+    el.querySelector('.rename-btn').onclick=()=>askRename(id);
   });
 }
+function closeDlg(){document.getElementById('dlgBack').classList.remove('on')}
+function openDlg(html, onReady){
+  const back=document.getElementById('dlgBack');
+  const box=document.getElementById('dlgBox');
+  box.innerHTML=html;
+  back.classList.add('on');
+  back.onclick=e=>{if(e.target===back)closeDlg()};
+  if(onReady) onReady(box);
+}
+function askDelete(id, step){
+  const g=state.data.groups.find(x=>x.id===id); if(!g) return;
+  const label=displayGroupName(g.name);
+  const title=step===1?'你真的要刪除嗎？':'你真的真的要刪除嗎？';
+  const sub=step===1?label:('刪除後無法復原：'+label);
+  openDlg(`<h2>${title}</h2><p class="dlg-sub">${sub}</p>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="dlgCancel">取消</button>
+      <button type="button" class="btn primary" id="dlgOk">確認</button>
+    </div>`, box=>{
+      box.querySelector('#dlgCancel').onclick=closeDlg;
+      box.querySelector('#dlgOk').onclick=()=>{
+        if(step===1) askDelete(id,2);
+        else {
+          state.data.groups=state.data.groups.filter(x=>x.id!==id);
+          save();closeDlg();renderGroups();pickWord();toast('已刪除 '+label);
+        }
+      };
+      box.querySelector('#dlgCancel').focus();
+    });
+}
+function askRename(id){
+  const g=state.data.groups.find(x=>x.id===id); if(!g) return;
+  const label=displayGroupName(g.name);
+  openDlg(`<h2>重新命名</h2><p class="dlg-sub">${label}</p>
+    <input class="dlg-input" id="dlgName" maxlength="40" value="">
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="dlgCancel">取消</button>
+      <button type="button" class="btn primary" id="dlgOk">儲存</button>
+    </div>`, box=>{
+      const input=box.querySelector('#dlgName');
+      input.value=g.name;
+      input.focus(); input.select();
+      box.querySelector('#dlgCancel').onclick=closeDlg;
+      const saveName=()=>{
+        const trimmed=String(input.value||'').trim();
+        if(!trimmed){toast('名稱不能空白');return}
+        const old=g.name;
+        if(trimmed!==old){
+          g.name=uniqueGroupName(trimmed, state.data.groups.filter(x=>x.id!==id).map(x=>x.name));
+          if(state.current&&state.current.groupName===old) state.current.groupName=g.name;
+        }
+        save();closeDlg();renderGroups();render();toast('已重新命名');
+      };
+      box.querySelector('#dlgOk').onclick=saveName;
+      input.onkeydown=e=>{if(e.key==='Enter')saveName(); if(e.key==='Escape')closeDlg()};
+    });
+}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2400)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDlg()});
 function speak(){
   const w=state.current;if(!w||!speechSynthesis)return;
   speechSynthesis.cancel();
