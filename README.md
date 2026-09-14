@@ -1,5 +1,5 @@
 # 日語單詞
 
-預覽網址（開啟 GitHub Pages 後）：https://potatokkk.github.io/jp-vocab/
+中級課本閃卡 PWA。匯入「標準格式2號」Excel 時，**每一張工作表會變成一個獨立 group**（名稱 = 工作表名，例如 `int_ch13`），不會用檔名。
 
-手機 Chrome 打開即可。Settings → Pages → Deploy from a branch → main / (root)。
+線上：https://potatokkk.github.io/jp-vocab/

@@ -1,9 +1,9 @@
 {
   "name": "日語單詞",
   "short_name": "日語單詞",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#16110e",
-  "theme_color": "#1a1410",
+  "background_color": "#e7d3b5",
+  "theme_color": "#e7d3b5",
   "lang": "zh-Hant"
 }
