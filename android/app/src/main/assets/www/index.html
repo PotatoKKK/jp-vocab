@@ -122,10 +122,16 @@ nav button.on{color:var(--title);font-weight:600}
 
 <section id="phone" class="screen">
   <div class="panel">
-    <p>真正「解鎖就跳出單詞」用這個 Android App。打開下方開關，並允許「顯示在其他應用程式上層」。之後每次解鎖，單詞卡會蓋在主畫面上。</p>
+    <p>解鎖手機之後，單詞卡會跳出來。請先完成權限；瀏覽器無法在解鎖時自動全畫面彈出，要裝 Android App。</p>
     <label class="import-opt" id="unlockRow"><input type="checkbox" id="unlockChk"/><span>解鎖時顯示單詞</span></label>
-    <p class="hint" id="androidHint" style="padding:0">瀏覽器裡這是預覽。安裝 APK 後，這個開關會控制真正的解鎖彈窗。</p>
-    <button class="btn ghost file-btn" id="previewUnlock">預覽解鎖彈窗</button>
+    <p class="hint" id="permOverlay" style="padding:0">顯示在其他應用程式上層：…</p>
+    <p class="hint" id="permBattery" style="padding:0">略過電池優化：…</p>
+    <p class="hint" id="androidHint" style="padding:0"></p>
+    <button class="btn primary file-btn" id="enableUnlock">開啟並授權</button>
+    <button class="btn ghost file-btn" id="previewUnlock">立刻試一次彈窗</button>
+    <button class="btn ghost file-btn" id="oemAutostart">小米／華為：允許自啟動</button>
+    <a class="btn primary file-btn apk-link" id="apkLink" href="https://github.com/PotatoKKK/jp-vocab/releases/download/apk/jp-vocab.apk">下載 Android 安裝檔</a>
+    <p class="hint">安裝時如提示封鎖未知來源，請允許此檔案。iPhone 系統不准 App 在解鎖時自動跳出全畫面。</p>
   </div>
 </section>
 <nav>
@@ -382,20 +388,67 @@ function syncAndroid(){
   const a=android(); if(!a) return;
   try{a.syncVocab(JSON.stringify(state.data))}catch(e){}
 }
+function permState(){
+  const a=android();
+  if(!a) return {overlay:false,battery:false,unlock:true};
+  try{
+    if(a.permissionState) return JSON.parse(a.permissionState());
+  }catch(e){}
+  try{
+    return {
+      overlay:!!a.hasOverlayPermission(),
+      battery:!!(a.hasBatteryExemption&&a.hasBatteryExemption()),
+      unlock:a.isUnlockEnabled()!==false
+    };
+  }catch(e){return {overlay:false,battery:false,unlock:true}}
+}
+function refreshPhone(){
+  const a=android();
+  const p=permState();
+  const overlayEl=document.getElementById('permOverlay');
+  const batteryEl=document.getElementById('permBattery');
+  const hint=document.getElementById('androidHint');
+  const apk=document.getElementById('apkLink');
+  const enable=document.getElementById('enableUnlock');
+  const oem=document.getElementById('oemAutostart');
+  if(overlayEl) overlayEl.textContent='顯示在其他應用程式上層：'+(p.overlay?'已允許':'尚未允許');
+  if(batteryEl) batteryEl.textContent='略過電池優化：'+(p.battery?'已允許':'尚未允許');
+  if(a){
+    if(hint) hint.textContent='允許權限後，鎖定再解鎖，單詞卡會蓋在主畫面上。';
+    if(apk) apk.style.display='none';
+    if(enable) enable.style.display='block';
+    if(oem) oem.style.display='block';
+  }else{
+    if(hint) hint.textContent='這是預覽。請下載安裝檔，裝在 Android 手機上才會在解鎖時跳出。';
+    if(apk) apk.style.display='block';
+    if(enable) enable.style.display='none';
+    if(oem) oem.style.display='none';
+  }
+}
 function initPhone(){
   const a=android();
   const chk=document.getElementById('unlockChk');
-  const hint=document.getElementById('androidHint');
+  refreshPhone();
   if(a){
-    hint.textContent='請允許「顯示在其他應用程式上層」。小米／華為還要允許自啟動。';
     try{chk.checked=!!a.isUnlockEnabled()}catch(e){chk.checked=true}
   }else{
     chk.checked=true;
   }
   chk.onchange=()=>{
     const on=chk.checked;
-    if(a){try{a.setUnlockEnabled(on)}catch(e){}}
+    if(a){
+      try{a.setUnlockEnabled(on)}catch(e){}
+      if(on){try{a.startUnlockSetup?a.startUnlockSetup():a.requestOverlayPermission()}catch(e){}}
+    }
     toast(on?'已開啟：解鎖時顯示單詞':'已關閉解鎖彈窗');
+    refreshPhone();
+  };
+  document.getElementById('enableUnlock').onclick=()=>{
+    if(a){try{a.startUnlockSetup?a.startUnlockSetup():a.requestOverlayPermission()}catch(e){}}
+    toast('請允許顯示在其他應用程式上層');
+  };
+  document.getElementById('oemAutostart').onclick=()=>{
+    if(a&&a.openAutostartSettings){try{a.openAutostartSettings()}catch(e){}}
   };
   document.getElementById('previewUnlock').onclick=()=>{
     if(a){try{a.previewUnlock();return}catch(e){}}
@@ -405,6 +458,7 @@ function initPhone(){
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
     document.getElementById('home').classList.add('on');
   };
+  setInterval(refreshPhone, 1500);
 }
 async function boot(){
   try{

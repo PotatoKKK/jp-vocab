@@ -28,6 +28,8 @@ jobs:
           mkdir -p android/app/src/main/assets/www/vocab
           if [ -f src/data/default-groups.json ]; then
             cp -f src/data/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
+          elif [ -f vocab/default-groups.json ]; then
+            cp -f vocab/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
           fi
           test -f android/app/src/main/assets/www/index.html
           test -f android/app/src/main/assets/www/vocab/default-groups.json
@@ -50,5 +52,6 @@ jobs:
           prerelease: true
           files: dist/jp-vocab.apk
           body: |
-            安裝後打開 App → 手機 → 打開「解鎖時顯示單詞」，並允許「顯示在其他應用程式上層」。
-            之後每次解鎖手機，單詞卡會跳出來。
+            打開 App → 按「開啟解鎖單詞」→ 允許「顯示在其他應用程式上層」。
+            之後每次解鎖手機，奶油紙單詞卡會跳出來。
+            小米／華為請再允許自啟動與略過電池優化。

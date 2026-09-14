@@ -48,7 +48,7 @@ body{display:flex;flex-direction:column;min-height:100dvh;
 .btn.primary{background:var(--accent);color:#fff}
 .btn.ghost{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
 .btn:disabled{opacity:.55}
-nav{display:grid;grid-template-columns:1fr 1fr 1fr;padding:8px 10px calc(14px + env(safe-area-inset-bottom))}
+nav{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:8px 10px calc(14px + env(safe-area-inset-bottom))}
 nav button{background:0;border:0;color:var(--muted);padding:12px 4px;font-family:"Noto Sans TC",sans-serif;font-size:14px}
 nav button.on{color:var(--title);font-weight:600}
 .hint{font-family:"Noto Sans TC",sans-serif;color:var(--muted);font-size:14px;padding:0 4px 12px;line-height:1.5}
@@ -72,6 +72,15 @@ nav button.on{color:var(--title);font-weight:600}
 .import-opt{display:flex;align-items:flex-start;gap:10px;font-family:"Noto Sans TC",sans-serif;font-size:14px;color:var(--ink);margin:8px 0}
 .import-opt input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)}
 .list{min-height:0;flex:1;overflow-y:auto}
+
+.lock-phone{flex:1;min-height:240px;border-radius:28px;overflow:hidden;background:#1b1512}
+.lock-face{width:100%;height:100%;min-height:240px;border:0;background:linear-gradient(180deg,#2a211c,#16110e);color:#f4eadc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-family:"Noto Sans TC",sans-serif}
+.lock-time{font-size:56px;font-weight:300;letter-spacing:-2px}
+.lock-hint{margin-top:24px;font-size:13px;color:#b9a894}
+.unlock-pop{display:none;position:fixed;inset:0;z-index:50;flex-direction:column;padding:16px;background:var(--bg)}
+.unlock-pop.on{display:flex}
+.unlock-pop .card{flex:1}
+.apk-link{display:block;text-align:center;text-decoration:none;margin-top:8px}
 @media (prefers-reduced-motion:reduce){.zh.hidden,.ex-zh.hidden{filter:none;opacity:.12}}
 </style>
 </head>
@@ -110,10 +119,26 @@ nav button.on{color:var(--title);font-weight:600}
     <button class="btn ghost file-btn" id="resetBtn">還原 24 課預設詞彙</button>
   </div>
 </section>
+
+<section id="phone" class="screen">
+  <div class="panel">
+    <p>解鎖手機之後，單詞卡會跳出來。請先完成權限；瀏覽器無法在解鎖時自動全畫面彈出，要裝 Android App。</p>
+    <label class="import-opt" id="unlockRow"><input type="checkbox" id="unlockChk"/><span>解鎖時顯示單詞</span></label>
+    <p class="hint" id="permOverlay" style="padding:0">顯示在其他應用程式上層：…</p>
+    <p class="hint" id="permBattery" style="padding:0">略過電池優化：…</p>
+    <p class="hint" id="androidHint" style="padding:0"></p>
+    <button class="btn primary file-btn" id="enableUnlock">開啟並授權</button>
+    <button class="btn ghost file-btn" id="previewUnlock">立刻試一次彈窗</button>
+    <button class="btn ghost file-btn" id="oemAutostart">小米／華為：允許自啟動</button>
+    <a class="btn primary file-btn apk-link" id="apkLink" href="https://github.com/PotatoKKK/jp-vocab/releases/download/apk/jp-vocab.apk">下載 Android 安裝檔</a>
+    <p class="hint">安裝時如提示封鎖未知來源，請允許此檔案。iPhone 系統不准 App 在解鎖時自動跳出全畫面。</p>
+  </div>
+</section>
 <nav>
   <button class="on" data-tab="home">單詞</button>
   <button data-tab="groups">Groups</button>
   <button data-tab="import">匯入</button>
+  <button data-tab="phone">手機</button>
 </nav>
 <div class="dlg-back" id="dlgBack">
   <div class="dlg" id="dlgBox" role="dialog" aria-modal="true"></div>
@@ -126,7 +151,7 @@ const state={data:{groups:[]},current:null,revealed:true};
 const mem={};
 function sget(k){try{return localStorage.getItem(k)}catch(e){return mem[k]||null}}
 function sset(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
-function save(){sset(KEY,JSON.stringify(state.data))}
+function save(){sset(KEY,JSON.stringify(state.data));syncAndroid()}
 function wordCount(d){return (d&&d.groups||[]).reduce((n,g)=>n+(g.words||[]).length,0)}
 function displayGroupName(name){
   const m=String(name||'').match(/^(?:int_)?ch(\d+)$/i);
@@ -357,6 +382,84 @@ document.getElementById('resetBtn').onclick=()=>{
   state.data=JSON.parse(JSON.stringify(window.DEFAULT_VOCAB));
   save();renderGroups();pickWord();toast('已還原 '+window.DEFAULT_VOCAB.groups.length+' 個課次');
 };
+
+function android(){return window.JpVocabAndroid||null}
+function syncAndroid(){
+  const a=android(); if(!a) return;
+  try{a.syncVocab(JSON.stringify(state.data))}catch(e){}
+}
+function permState(){
+  const a=android();
+  if(!a) return {overlay:false,battery:false,unlock:true};
+  try{
+    if(a.permissionState) return JSON.parse(a.permissionState());
+  }catch(e){}
+  try{
+    return {
+      overlay:!!a.hasOverlayPermission(),
+      battery:!!(a.hasBatteryExemption&&a.hasBatteryExemption()),
+      unlock:a.isUnlockEnabled()!==false
+    };
+  }catch(e){return {overlay:false,battery:false,unlock:true}}
+}
+function refreshPhone(){
+  const a=android();
+  const p=permState();
+  const overlayEl=document.getElementById('permOverlay');
+  const batteryEl=document.getElementById('permBattery');
+  const hint=document.getElementById('androidHint');
+  const apk=document.getElementById('apkLink');
+  const enable=document.getElementById('enableUnlock');
+  const oem=document.getElementById('oemAutostart');
+  if(overlayEl) overlayEl.textContent='顯示在其他應用程式上層：'+(p.overlay?'已允許':'尚未允許');
+  if(batteryEl) batteryEl.textContent='略過電池優化：'+(p.battery?'已允許':'尚未允許');
+  if(a){
+    if(hint) hint.textContent='允許權限後，鎖定再解鎖，單詞卡會蓋在主畫面上。';
+    if(apk) apk.style.display='none';
+    if(enable) enable.style.display='block';
+    if(oem) oem.style.display='block';
+  }else{
+    if(hint) hint.textContent='這是預覽。請下載安裝檔，裝在 Android 手機上才會在解鎖時跳出。';
+    if(apk) apk.style.display='block';
+    if(enable) enable.style.display='none';
+    if(oem) oem.style.display='none';
+  }
+}
+function initPhone(){
+  const a=android();
+  const chk=document.getElementById('unlockChk');
+  refreshPhone();
+  if(a){
+    try{chk.checked=!!a.isUnlockEnabled()}catch(e){chk.checked=true}
+  }else{
+    chk.checked=true;
+  }
+  chk.onchange=()=>{
+    const on=chk.checked;
+    if(a){
+      try{a.setUnlockEnabled(on)}catch(e){}
+      if(on){try{a.startUnlockSetup?a.startUnlockSetup():a.requestOverlayPermission()}catch(e){}}
+    }
+    toast(on?'已開啟：解鎖時顯示單詞':'已關閉解鎖彈窗');
+    refreshPhone();
+  };
+  document.getElementById('enableUnlock').onclick=()=>{
+    if(a){try{a.startUnlockSetup?a.startUnlockSetup():a.requestOverlayPermission()}catch(e){}}
+    toast('請允許顯示在其他應用程式上層');
+  };
+  document.getElementById('oemAutostart').onclick=()=>{
+    if(a&&a.openAutostartSettings){try{a.openAutostartSettings()}catch(e){}}
+  };
+  document.getElementById('previewUnlock').onclick=()=>{
+    if(a){try{a.previewUnlock();return}catch(e){}}
+    pickWord();
+    toast('預覽：安裝 App 後，解鎖就會跳出這張卡');
+    document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='home'));
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+    document.getElementById('home').classList.add('on');
+  };
+  setInterval(refreshPhone, 1500);
+}
 async function boot(){
   try{
     const r=await fetch('./vocab/default-groups.json?v=6');
@@ -368,7 +471,7 @@ async function boot(){
   let stored=null;try{stored=JSON.parse(sget(KEY)||'null')}catch(e){}
   state.data=(stored&&wordCount(stored)>0)?stored:JSON.parse(JSON.stringify(window.DEFAULT_VOCAB));
   if(!stored||wordCount(stored)===0) save();
-  renderGroups();pickWord();
+  renderGroups();pickWord();syncAndroid();initPhone();
 }
 boot();
 </script>

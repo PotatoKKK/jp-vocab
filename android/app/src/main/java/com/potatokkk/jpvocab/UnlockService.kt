@@ -1,5 +1,6 @@
 package com.potatokkk.jpvocab
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,16 +11,30 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 
 class UnlockService : Service() {
     private val overlay: OverlayController
         get() = (application as VocabApp).overlay
+    private val handler = Handler(Looper.getMainLooper())
+    private val showRunnable = Runnable {
+        if (Prefs.unlockEnabled(this)) overlay.show()
+    }
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == Intent.ACTION_USER_PRESENT && Prefs.unlockEnabled(this@UnlockService)) {
-                overlay.show()
+            when (intent?.action) {
+                Intent.ACTION_USER_PRESENT -> scheduleShow()
+                Intent.ACTION_SCREEN_ON -> {
+                    val km = getSystemService(KeyguardManager::class.java)
+                    if (km != null && !km.isKeyguardLocked) scheduleShow()
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    handler.removeCallbacks(showRunnable)
+                    overlay.hide()
+                }
             }
         }
     }
@@ -36,14 +51,18 @@ class UnlockService : Service() {
         val n: Notification = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_app)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("解鎖時會顯示單詞")
+            .setContentText(getString(R.string.unlock_running))
             .setContentIntent(open)
             .setOngoing(true)
             .setSilent(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
         startForeground(42, n)
-        val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
         } else {
@@ -56,10 +75,14 @@ class UnlockService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        if (intent?.getBooleanExtra(EXTRA_SHOW_NOW, false) == true) {
+            scheduleShow()
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(showRunnable)
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         overlay.hide()
         super.onDestroy()
@@ -67,18 +90,25 @@ class UnlockService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private fun scheduleShow() {
+        if (!Prefs.unlockEnabled(this)) return
+        handler.removeCallbacks(showRunnable)
+        handler.postDelayed(showRunnable, 480)
+    }
+
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val mgr = getSystemService(NotificationManager::class.java)
         mgr.createNotificationChannel(
-            NotificationChannel(CHANNEL, "解鎖單詞", NotificationManager.IMPORTANCE_LOW),
+            NotificationChannel(CHANNEL, getString(R.string.unlock_channel), NotificationManager.IMPORTANCE_LOW),
         )
     }
 
     companion object {
         private const val CHANNEL = "unlock"
-        fun start(ctx: Context) {
-            val i = Intent(ctx, UnlockService::class.java)
+        private const val EXTRA_SHOW_NOW = "show_now"
+        fun start(ctx: Context, showNow: Boolean = false) {
+            val i = Intent(ctx, UnlockService::class.java).putExtra(EXTRA_SHOW_NOW, showNow)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i)
             else ctx.startService(i)
         }

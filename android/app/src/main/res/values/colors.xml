@@ -5,4 +5,7 @@
     <color name="ink">#2A1B12</color>
     <color name="accent">#D96A28</color>
     <color name="title">#6B4A28</color>
+    <color name="muted">#8D735C</color>
+    <color name="gold">#B0893A</color>
+    <color name="line">#DDCBB3</color>
 </resources>

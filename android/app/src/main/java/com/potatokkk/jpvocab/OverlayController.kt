@@ -3,7 +3,10 @@ package com.potatokkk.jpvocab
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -13,19 +16,34 @@ import java.util.Locale
 
 class OverlayController(private val appCtx: Context) {
     private val wm = appCtx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    private val handler = Handler(Looper.getMainLooper())
     private var view: View? = null
     private var tts: TextToSpeech? = null
     private var current: VocabWord? = null
     private var revealed = true
+    private var retrying = false
 
     fun show() {
+        handler.post { showNow() }
+    }
+
+    fun hide() {
+        handler.post {
+            view?.let {
+                try { wm.removeView(it) } catch (_: Exception) {}
+            }
+            view = null
+            tts?.stop()
+            tts?.shutdown()
+            tts = null
+            retrying = false
+        }
+    }
+
+    private fun showNow() {
+        if (!Permissions.hasOverlay(appCtx)) return
         if (view != null) {
             bind(WordRepository.pick(appCtx) ?: return)
-            return
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-            !android.provider.Settings.canDrawOverlays(appCtx)
-        ) {
             return
         }
         val v = LayoutInflater.from(appCtx).inflate(R.layout.overlay_word, null)
@@ -43,15 +61,17 @@ class OverlayController(private val appCtx: Context) {
                 WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR,
             PixelFormat.TRANSLUCENT,
         )
+        params.gravity = Gravity.TOP or Gravity.START
         params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            params.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         try {
             wm.addView(v, params)
             view = v
-            tts = TextToSpeech(appCtx) { status ->
-                if (status == TextToSpeech.SUCCESS) {
-                    tts?.language = Locale.JAPANESE
-                }
-            }
+            retrying = false
+            ensureTts()
             v.findViewById<Button>(R.id.btnClose).setOnClickListener { hide() }
             v.findViewById<Button>(R.id.btnNext).setOnClickListener {
                 bind(WordRepository.pick(appCtx) ?: return@setOnClickListener)
@@ -71,17 +91,20 @@ class OverlayController(private val appCtx: Context) {
             bind(WordRepository.pick(appCtx))
         } catch (_: Exception) {
             view = null
+            if (!retrying) {
+                retrying = true
+                handler.postDelayed({ showNow() }, 700)
+            }
         }
     }
 
-    fun hide() {
-        view?.let {
-            try { wm.removeView(it) } catch (_: Exception) {}
+    private fun ensureTts() {
+        if (tts != null) return
+        tts = TextToSpeech(appCtx) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = Locale.JAPANESE
+            }
         }
-        view = null
-        tts?.stop()
-        tts?.shutdown()
-        tts = null
     }
 
     private fun bind(word: VocabWord?) {
@@ -103,9 +126,12 @@ class OverlayController(private val appCtx: Context) {
         val exZh = v.findViewById<TextView>(R.id.exZh)
         val reveal = v.findViewById<Button>(R.id.btnReveal)
         if (w == null) {
-            kana.text = "到 Groups 勾選至少一課"
+            kana.text = appCtx.getString(R.string.empty_pool)
             kanji.text = ""
+            kanji.visibility = View.GONE
             zh.text = ""
+            exJp.text = ""
+            exZh.text = ""
             return
         }
         mark.text = w.mark
@@ -120,6 +146,6 @@ class OverlayController(private val appCtx: Context) {
         exJp.text = w.exampleJp
         exZh.text = w.exampleZh
         exZh.alpha = if (revealed) 1f else 0.12f
-        reveal.text = if (revealed) "隱藏意思" else "顯示意思"
+        reveal.text = if (revealed) appCtx.getString(R.string.hide_meaning) else appCtx.getString(R.string.show_meaning)
     }
 }

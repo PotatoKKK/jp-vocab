@@ -3,6 +3,20 @@
     <string name="app_name">日語單詞</string>
     <string name="speak">朗讀</string>
     <string name="hide_meaning">隱藏意思</string>
+    <string name="show_meaning">顯示意思</string>
     <string name="next">換一個</string>
     <string name="close">關閉</string>
+    <string name="empty_pool">到 Groups 勾選至少一課</string>
+    <string name="unlock_running">解鎖時會顯示單詞</string>
+    <string name="unlock_channel">解鎖單詞</string>
+    <string name="setup_title">解鎖之後，單詞卡會跳出來</string>
+    <string name="setup_body">允許「顯示在其他應用程式上層」後，每次解鎖手機，奶油紙單詞卡會蓋在主畫面上。小米／華為還要允許自啟動，否則鎖後可能被系統殺掉。</string>
+    <string name="setup_enable">開啟解鎖單詞</string>
+    <string name="setup_autostart">小米／華為：允許自啟動</string>
+    <string name="setup_later">稍後設定</string>
+    <string name="setup_oem">建議同時略過電池優化，背景服務才活得久。</string>
+    <string name="perm_overlay_ok">顯示在其他應用程式上層：已允許</string>
+    <string name="perm_overlay_need">顯示在其他應用程式上層：尚未允許</string>
+    <string name="perm_battery_ok">略過電池優化：已允許</string>
+    <string name="perm_battery_need">略過電池優化：尚未允許</string>
 </resources>

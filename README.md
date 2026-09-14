@@ -1,5 +1,13 @@
 # 日語單詞
 
-中級課本閃卡 PWA。匯入「標準格式2號」Excel 時，**每一張工作表會變成一個獨立 group**（名稱 = 工作表名，例如 `int_ch13`），不會用檔名。
+N2 詞彙閃卡。解鎖 Android 手機之後，奶油紙單詞卡會跳出來。
 
-線上：https://potatokkk.github.io/jp-vocab/
+## 安裝 Android
+
+1. 下載 [jp-vocab.apk](https://github.com/PotatoKKK/jp-vocab/releases/download/apk/jp-vocab.apk)
+2. 打開檔案安裝。若系統封鎖未知來源，允許這個檔案。
+3. 打開 App，按「開啟解鎖單詞」，允許「顯示在其他應用程式上層」。
+4. 建議略過電池優化。小米／華為還要允許自啟動。
+5. 鎖定手機再解鎖，單詞卡會蓋在主畫面上。
+
+網頁版：[GitHub Pages](https://potatokkk.github.io/jp-vocab/)

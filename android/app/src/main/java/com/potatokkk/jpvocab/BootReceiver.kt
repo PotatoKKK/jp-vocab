@@ -6,7 +6,11 @@ import android.content.Intent
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action == Intent.ACTION_BOOT_COMPLETED && Prefs.unlockEnabled(context)) {
+        val action = intent?.action ?: return
+        val restart = action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
+            action == "android.intent.action.QUICKBOOT_POWERON"
+        if (restart && Prefs.unlockEnabled(context)) {
             UnlockService.start(context)
         }
     }
