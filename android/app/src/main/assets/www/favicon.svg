@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="22" fill="#e7d3b5"/>
+  <rect x="18" y="14" width="64" height="72" rx="12" fill="#f6edd8"/>
+  <rect x="22" y="18" width="56" height="64" rx="9" fill="none" stroke="#b0893a" stroke-width="2"/>
+  <text x="50" y="58" font-size="40" text-anchor="middle" dominant-baseline="central" fill="#d96a28" font-family="Hiragino Mincho ProN, Songti TC, Noto Serif TC, serif" font-weight="700">あ</text>
+</svg>

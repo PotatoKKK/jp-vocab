@@ -1,0 +1,54 @@
+name: Build APK
+
+on:
+  push:
+    paths:
+      - "android/**"
+      - ".github/workflows/build-apk.yml"
+      - "artifacts/index.html"
+      - "src/data/default-groups.json"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Sync web assets
+        run: |
+          mkdir -p android/app/src/main/assets/www/vocab
+          if [ -f src/data/default-groups.json ]; then
+            cp -f src/data/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
+          fi
+          test -f android/app/src/main/assets/www/index.html
+          test -f android/app/src/main/assets/www/vocab/default-groups.json
+      - name: Assemble debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/jp-vocab.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jp-vocab-apk
+          path: dist/jp-vocab.apk
+      - name: Publish rolling release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          name: 日語單詞 Android
+          prerelease: true
+          files: dist/jp-vocab.apk
+          body: |
+            安裝後打開 App → 手機 → 打開「解鎖時顯示單詞」，並允許「顯示在其他應用程式上層」。
+            之後每次解鎖手機，單詞卡會跳出來。
