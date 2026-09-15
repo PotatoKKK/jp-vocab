@@ -62,6 +62,13 @@ class WebAppInterface(private val activity: MainActivity) {
     }
 
     @JavascriptInterface
+    fun speak(text: String) {
+        activity.runOnUiThread {
+            (activity.application as VocabApp).tts.speak(text)
+        }
+    }
+
+    @JavascriptInterface
     fun previewUnlock() {
         activity.runOnUiThread {
             UnlockService.start(activity)

@@ -14,25 +14,30 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 
 class UnlockService : Service() {
     private val overlay: OverlayController
         get() = (application as VocabApp).overlay
     private val handler = Handler(Looper.getMainLooper())
-    private val showRunnable = Runnable {
-        if (Prefs.unlockEnabled(this)) overlay.show()
-    }
+    private var lastPresentAt = 0L
+    private val delays = longArrayOf(200L, 700L, 1400L, 2400L)
+
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                Intent.ACTION_USER_PRESENT -> scheduleShow()
+                Intent.ACTION_USER_PRESENT,
+                Intent.ACTION_USER_UNLOCKED -> scheduleShow()
                 Intent.ACTION_SCREEN_ON -> {
+                    UnlockService.start(this@UnlockService)
                     val km = getSystemService(KeyguardManager::class.java)
                     if (km != null && !km.isKeyguardLocked) scheduleShow()
                 }
                 Intent.ACTION_SCREEN_OFF -> {
-                    handler.removeCallbacks(showRunnable)
+                    val recentUnlock = SystemClock.elapsedRealtime() - lastPresentAt < 2500
+                    if (recentUnlock) return
+                    cancelShows()
                     overlay.hide()
                 }
             }
@@ -60,11 +65,12 @@ class UnlockService : Service() {
         startForeground(42, n)
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_USER_UNLOCKED)
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
+            registerReceiver(receiver, filter, RECEIVER_EXPORTED)
         } else {
             registerReceiver(receiver, filter)
         }
@@ -82,7 +88,7 @@ class UnlockService : Service() {
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(showRunnable)
+        cancelShows()
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         overlay.hide()
         super.onDestroy()
@@ -92,8 +98,17 @@ class UnlockService : Service() {
 
     private fun scheduleShow() {
         if (!Prefs.unlockEnabled(this)) return
-        handler.removeCallbacks(showRunnable)
-        handler.postDelayed(showRunnable, 480)
+        lastPresentAt = SystemClock.elapsedRealtime()
+        cancelShows()
+        for (delay in delays) {
+            handler.postDelayed({
+                if (Prefs.unlockEnabled(this) && !overlay.isShowing()) overlay.show()
+            }, delay)
+        }
+    }
+
+    private fun cancelShows() {
+        handler.removeCallbacksAndMessages(null)
     }
 
     private fun ensureChannel() {
@@ -109,8 +124,12 @@ class UnlockService : Service() {
         private const val EXTRA_SHOW_NOW = "show_now"
         fun start(ctx: Context, showNow: Boolean = false) {
             val i = Intent(ctx, UnlockService::class.java).putExtra(EXTRA_SHOW_NOW, showNow)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i)
-            else ctx.startService(i)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i)
+                else ctx.startService(i)
+            } catch (_: Exception) {
+                /* OEM may block background start */
+            }
         }
         fun stop(ctx: Context) {
             ctx.stopService(Intent(ctx, UnlockService::class.java))

@@ -5,23 +5,22 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
-import java.util.Locale
 
 class OverlayController(private val appCtx: Context) {
     private val wm = appCtx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val handler = Handler(Looper.getMainLooper())
     private var view: View? = null
-    private var tts: TextToSpeech? = null
     private var current: VocabWord? = null
     private var revealed = true
     private var retrying = false
+
+    fun isShowing(): Boolean = view != null
 
     fun show() {
         handler.post { showNow() }
@@ -33,19 +32,15 @@ class OverlayController(private val appCtx: Context) {
                 try { wm.removeView(it) } catch (_: Exception) {}
             }
             view = null
-            tts?.stop()
-            tts?.shutdown()
-            tts = null
             retrying = false
         }
     }
 
+    private fun speaker(): TtsSpeaker = (appCtx.applicationContext as VocabApp).tts
+
     private fun showNow() {
         if (!Permissions.hasOverlay(appCtx)) return
-        if (view != null) {
-            bind(WordRepository.pick(appCtx) ?: return)
-            return
-        }
+        if (view != null) return
         val v = LayoutInflater.from(appCtx).inflate(R.layout.overlay_word, null)
         val type =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -58,7 +53,8 @@ class OverlayController(private val appCtx: Context) {
             WindowManager.LayoutParams.MATCH_PARENT,
             type,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR,
+                WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR or
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT,
         )
         params.gravity = Gravity.TOP or Gravity.START
@@ -71,7 +67,6 @@ class OverlayController(private val appCtx: Context) {
             wm.addView(v, params)
             view = v
             retrying = false
-            ensureTts()
             v.findViewById<Button>(R.id.btnClose).setOnClickListener { hide() }
             v.findViewById<Button>(R.id.btnNext).setOnClickListener {
                 bind(WordRepository.pick(appCtx) ?: return@setOnClickListener)
@@ -84,27 +79,20 @@ class OverlayController(private val appCtx: Context) {
                 revealed = !revealed
                 render()
             }
-            v.findViewById<View>(R.id.btnSpeak).setOnClickListener {
-                val w = current ?: return@setOnClickListener
-                tts?.speak(w.speech.ifBlank { w.kana }, TextToSpeech.QUEUE_FLUSH, null, "w")
-            }
+            v.findViewById<View>(R.id.btnSpeak).setOnClickListener { speakCurrent() }
             bind(WordRepository.pick(appCtx))
         } catch (_: Exception) {
             view = null
             if (!retrying) {
                 retrying = true
-                handler.postDelayed({ showNow() }, 700)
+                handler.postDelayed({ showNow() }, 800)
             }
         }
     }
 
-    private fun ensureTts() {
-        if (tts != null) return
-        tts = TextToSpeech(appCtx) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.JAPANESE
-            }
-        }
+    private fun speakCurrent() {
+        val w = current ?: return
+        speaker().speak(w.speech.ifBlank { w.kana.ifBlank { w.kanji } })
     }
 
     private fun bind(word: VocabWord?) {
