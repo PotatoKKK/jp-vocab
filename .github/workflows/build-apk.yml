@@ -23,16 +23,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
-      - name: Sync web assets
+      - name: Restore web assets if placeholders
         run: |
+          GOOD=https://raw.githubusercontent.com/PotatoKKK/jp-vocab/81437d83dd6f4a32af256ebb22bb21747449c480
           mkdir -p android/app/src/main/assets/www/vocab
-          if [ -f src/data/default-groups.json ]; then
-            cp -f src/data/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
-          elif [ -f vocab/default-groups.json ]; then
-            cp -f vocab/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
+          if [ ! -f index.html ] || [ "$(wc -c < index.html)" -lt 1000 ]; then
+            curl -fsSL "$GOOD/index.html" -o index.html
           fi
+          cp -f index.html android/app/src/main/assets/www/index.html
+          if [ ! -f vocab/default-groups.json ] || [ "$(wc -c < vocab/default-groups.json)" -lt 1000 ]; then
+            curl -fsSL "$GOOD/vocab/default-groups.json" -o vocab/default-groups.json
+          fi
+          cp -f vocab/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
           test -f android/app/src/main/assets/www/index.html
           test -f android/app/src/main/assets/www/vocab/default-groups.json
+          test "$(wc -c < android/app/src/main/assets/www/index.html)" -gt 1000
       - name: Assemble debug APK
         working-directory: android
         run: gradle assembleDebug --no-daemon
@@ -55,3 +60,4 @@ jobs:
             打開 App → 按「開啟解鎖單詞」→ 允許「顯示在其他應用程式上層」。
             之後每次解鎖手機，奶油紙單詞卡會跳出來。
             小米／華為請再允許自啟動與略過電池優化。
+            本版解鎖後只跳一次；點「關閉」後不會再重試。
