@@ -5,8 +5,8 @@ on:
     paths:
       - "android/**"
       - ".github/workflows/build-apk.yml"
-      - "artifacts/index.html"
-      - "src/data/default-groups.json"
+      - "index.html"
+      - "vocab/**"
   workflow_dispatch:
 
 jobs:
@@ -23,14 +23,37 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
+      - name: Build vocab from base + v1.5 patch
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          from pathlib import Path
+          base_url = "https://raw.githubusercontent.com/PotatoKKK/jp-vocab/81437d83dd6f4a32af256ebb22bb21747449c480/vocab/default-groups.json"
+          base = json.load(urllib.request.urlopen(base_url))
+          patch = json.loads(Path("vocab/example-patch-v15.json").read_text(encoding="utf-8"))
+          m = {g["name"]: g for g in base["groups"]}
+          n = 0
+          for name, idx, jp, zh in patch:
+              g = m.get(name)
+              if not g or idx >= len(g.get("words") or []):
+                  raise SystemExit(f"patch miss {name} {idx}")
+              g["words"][idx]["exampleJp"] = jp
+              g["words"][idx]["exampleZh"] = zh
+              n += 1
+          base["dataVersion"] = "v1.5"
+          Path("vocab").mkdir(exist_ok=True)
+          Path("vocab/default-groups.json").write_text(
+              json.dumps(base, ensure_ascii=False, separators=(",", ":")),
+              encoding="utf-8",
+          )
+          print("patched", n, "examples")
+          PY
       - name: Sync web assets
         run: |
           mkdir -p android/app/src/main/assets/www/vocab
-          if [ -f src/data/default-groups.json ]; then
-            cp -f src/data/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
-          elif [ -f vocab/default-groups.json ]; then
-            cp -f vocab/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
-          fi
+          cp -f index.html android/app/src/main/assets/www/index.html
+          cp -f vocab/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
+          cp -f vocab/example-patch-v15.json android/app/src/main/assets/www/vocab/example-patch-v15.json
           test -f android/app/src/main/assets/www/index.html
           test -f android/app/src/main/assets/www/vocab/default-groups.json
       - name: Assemble debug APK
@@ -55,3 +78,4 @@ jobs:
             打開 App → 按「開啟解鎖單詞」→ 允許「顯示在其他應用程式上層」。
             之後每次解鎖手機，奶油紙單詞卡會跳出來。
             小米／華為請再允許自啟動與略過電池優化。
+            詞庫例句已換成 Excel v1.5。
