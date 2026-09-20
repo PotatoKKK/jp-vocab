@@ -18,7 +18,10 @@ class OverlayController(private val appCtx: Context) {
     private var view: View? = null
     private var current: VocabWord? = null
     private var revealed = true
-    private var retrying = false
+    var onShown: (() -> Unit)? = null
+    var onUserDismiss: (() -> Unit)? = null
+
+    private val retryRunnable = Runnable { showNow() }
 
     fun isShowing(): Boolean = view != null
 
@@ -27,12 +30,17 @@ class OverlayController(private val appCtx: Context) {
     }
 
     fun hide() {
+        hideInternal(fromUser = false)
+    }
+
+    private fun hideInternal(fromUser: Boolean) {
+        handler.removeCallbacks(retryRunnable)
         handler.post {
             view?.let {
                 try { wm.removeView(it) } catch (_: Exception) {}
             }
             view = null
-            retrying = false
+            if (fromUser) onUserDismiss?.invoke()
         }
     }
 
@@ -40,7 +48,10 @@ class OverlayController(private val appCtx: Context) {
 
     private fun showNow() {
         if (!Permissions.hasOverlay(appCtx)) return
-        if (view != null) return
+        if (view != null) {
+            onShown?.invoke()
+            return
+        }
         val v = LayoutInflater.from(appCtx).inflate(R.layout.overlay_word, null)
         val type =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -66,8 +77,8 @@ class OverlayController(private val appCtx: Context) {
         try {
             wm.addView(v, params)
             view = v
-            retrying = false
-            v.findViewById<Button>(R.id.btnClose).setOnClickListener { hide() }
+            handler.removeCallbacks(retryRunnable)
+            v.findViewById<Button>(R.id.btnClose).setOnClickListener { hideInternal(fromUser = true) }
             v.findViewById<Button>(R.id.btnNext).setOnClickListener {
                 bind(WordRepository.pick(appCtx) ?: return@setOnClickListener)
             }
@@ -81,12 +92,11 @@ class OverlayController(private val appCtx: Context) {
             }
             v.findViewById<View>(R.id.btnSpeak).setOnClickListener { speakCurrent() }
             bind(WordRepository.pick(appCtx))
+            onShown?.invoke()
         } catch (_: Exception) {
             view = null
-            if (!retrying) {
-                retrying = true
-                handler.postDelayed({ showNow() }, 800)
-            }
+            handler.removeCallbacks(retryRunnable)
+            handler.postDelayed(retryRunnable, 800)
         }
     }
 

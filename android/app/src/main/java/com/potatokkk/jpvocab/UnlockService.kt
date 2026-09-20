@@ -22,6 +22,7 @@ class UnlockService : Service() {
         get() = (application as VocabApp).overlay
     private val handler = Handler(Looper.getMainLooper())
     private var lastPresentAt = 0L
+    private var consumed = false
     private val delays = longArrayOf(200L, 700L, 1400L, 2400L)
 
     private val receiver = object : BroadcastReceiver() {
@@ -37,6 +38,7 @@ class UnlockService : Service() {
                 Intent.ACTION_SCREEN_OFF -> {
                     val recentUnlock = SystemClock.elapsedRealtime() - lastPresentAt < 2500
                     if (recentUnlock) return
+                    consumed = false
                     cancelShows()
                     overlay.hide()
                 }
@@ -47,6 +49,14 @@ class UnlockService : Service() {
     override fun onCreate() {
         super.onCreate()
         ensureChannel()
+        overlay.onShown = {
+            consumed = true
+            cancelShows()
+        }
+        overlay.onUserDismiss = {
+            consumed = true
+            cancelShows()
+        }
         val open = PendingIntent.getActivity(
             this,
             0,
@@ -82,6 +92,7 @@ class UnlockService : Service() {
             return START_NOT_STICKY
         }
         if (intent?.getBooleanExtra(EXTRA_SHOW_NOW, false) == true) {
+            consumed = false
             scheduleShow()
         }
         return START_STICKY
@@ -89,6 +100,8 @@ class UnlockService : Service() {
 
     override fun onDestroy() {
         cancelShows()
+        overlay.onShown = null
+        overlay.onUserDismiss = null
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         overlay.hide()
         super.onDestroy()
@@ -98,11 +111,14 @@ class UnlockService : Service() {
 
     private fun scheduleShow() {
         if (!Prefs.unlockEnabled(this)) return
+        if (overlay.isShowing() || consumed) return
         lastPresentAt = SystemClock.elapsedRealtime()
         cancelShows()
         for (delay in delays) {
             handler.postDelayed({
-                if (Prefs.unlockEnabled(this) && !overlay.isShowing()) overlay.show()
+                if (consumed || overlay.isShowing()) return@postDelayed
+                if (!Prefs.unlockEnabled(this)) return@postDelayed
+                overlay.show()
             }, delay)
         }
     }
