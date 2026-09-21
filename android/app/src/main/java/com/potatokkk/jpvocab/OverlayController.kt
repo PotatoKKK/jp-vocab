@@ -22,6 +22,7 @@ class OverlayController(private val appCtx: Context) {
     var onUserDismiss: (() -> Unit)? = null
 
     private val retryRunnable = Runnable { showNow() }
+    private val autoHideRunnable = Runnable { hideInternal(fromUser = true) }
 
     fun isShowing(): Boolean = view != null
 
@@ -35,6 +36,7 @@ class OverlayController(private val appCtx: Context) {
 
     private fun hideInternal(fromUser: Boolean) {
         handler.removeCallbacks(retryRunnable)
+        handler.removeCallbacks(autoHideRunnable)
         handler.post {
             view?.let {
                 try { wm.removeView(it) } catch (_: Exception) {}
@@ -42,6 +44,11 @@ class OverlayController(private val appCtx: Context) {
             view = null
             if (fromUser) onUserDismiss?.invoke()
         }
+    }
+
+    private fun armAutoHide() {
+        handler.removeCallbacks(autoHideRunnable)
+        handler.postDelayed(autoHideRunnable, AUTO_HIDE_MS)
     }
 
     private fun speaker(): TtsSpeaker = (appCtx.applicationContext as VocabApp).tts
@@ -92,6 +99,7 @@ class OverlayController(private val appCtx: Context) {
             }
             v.findViewById<View>(R.id.btnSpeak).setOnClickListener { speakCurrent() }
             bind(WordRepository.pick(appCtx))
+            armAutoHide()
             onShown?.invoke()
         } catch (_: Exception) {
             view = null
@@ -145,5 +153,9 @@ class OverlayController(private val appCtx: Context) {
         exZh.text = w.exampleZh
         exZh.alpha = if (revealed) 1f else 0.12f
         reveal.text = if (revealed) appCtx.getString(R.string.hide_meaning) else appCtx.getString(R.string.show_meaning)
+    }
+
+    companion object {
+        private const val AUTO_HIDE_MS = 30_000L
     }
 }
