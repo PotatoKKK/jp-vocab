@@ -5,6 +5,7 @@ on:
     paths:
       - "android/**"
       - ".github/workflows/build-apk.yml"
+      - "scripts/**"
       - "index.html"
       - "vocab/**"
   workflow_dispatch:
@@ -30,31 +31,13 @@ jobs:
           if [ ! -f index.html ] || [ "$(wc -c < index.html)" -lt 1000 ]; then
             curl -fsSL "$GOOD/index.html" -o index.html
           fi
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("index.html")
-          t = p.read_text(encoding="utf-8")
-          old = """document.querySelectorAll('nav button').forEach(btn=>{\n  btn.onclick=()=>{\n    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));\n    btn.classList.add('on');\n    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));\n    document.getElementById(btn.dataset.tab).classList.add('on');\n    if(btn.dataset.tab==='groups')renderGroups();\n  };\n});"""
-          new = """function setTab(tab){\n  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));\n  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===tab));\n  const speakBtn=document.getElementById('speakBtn');\n  if(speakBtn) speakBtn.style.visibility=tab==='home'?'visible':'hidden';\n  if(tab==='groups')renderGroups();\n}\ndocument.querySelectorAll('nav button').forEach(btn=>{\n  btn.onclick=()=>setTab(btn.dataset.tab);\n});"""
-          if old in t:
-              t = t.replace(old, new)
-              t = t.replace("""    document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='groups'));\n    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));\n    document.getElementById('groups').classList.add('on');""", "    setTab('groups');
-")
-              t = t.replace("""    document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='home'));\n    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));\n    document.getElementById('home').classList.add('on');""", "    setTab('home');
-")
-          t = t.replace('<input type="file" id="fileInput" accept=".xlsx,.xls" hidden/>', '<input type="file" id="fileInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0"/>')
-          t = t.replace("document.getElementById('pickFile').onclick=()=>document.getElementById('fileInput').click();", """document.getElementById('pickFile').onclick=()=>{\n  const inp=document.getElementById('fileInput');\n  try{inp.value='';}catch(e){}\n  inp.click();\n};""")
-          t = t.replace("default-groups.json?v=6", "default-groups.json?v=7")
-          p.write_text(t, encoding="utf-8")
-          print("patched", p.stat().st_size, "setTab" in t)
-          PY
+          python3 scripts/patch_index.py
           cp -f index.html android/app/src/main/assets/www/index.html
           if [ ! -f vocab/default-groups.json ] || [ "$(wc -c < vocab/default-groups.json)" -lt 1000 ]; then
             curl -fsSL "$GOOD/vocab/default-groups.json" -o vocab/default-groups.json
           fi
           cp -f vocab/default-groups.json android/app/src/main/assets/www/vocab/default-groups.json
           test "$(wc -c < android/app/src/main/assets/www/index.html)" -gt 1000
-          grep -q setTab android/app/src/main/assets/www/index.html
       - name: Assemble debug APK
         working-directory: android
         run: gradle assembleDebug --no-daemon
@@ -74,7 +57,6 @@ jobs:
           prerelease: true
           files: dist/jp-vocab.apk
           body: |
-            打開 App → 按「開啟解鎖單詞」→ 允許「顯示在其他應用程式上層」。
             彙入 Excel 會打開系統檔案選擇器。
             右上角喇叭只在單詞頁顯示。
             解鎖後只跳一次；點「關閉」後不會再重試。
