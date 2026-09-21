@@ -34,7 +34,8 @@
             android:background="@drawable/icon_btn"
             android:contentDescription="@string/speak"
             android:padding="8dp"
-            android:src="@drawable/ic_volume" />
+            android:src="@drawable/ic_volume"
+            android:tint="@color/icon_tint" />
     </RelativeLayout>
 
     <FrameLayout
