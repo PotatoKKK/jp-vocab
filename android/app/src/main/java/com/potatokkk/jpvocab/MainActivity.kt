@@ -2,9 +2,13 @@ package com.potatokkk.jpvocab
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -21,10 +25,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var setup: View
     private var pendingOverlay = false
     private var pendingBattery = false
+    private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val notifyPerm = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* ignore */ }
+
+    private val filePick = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val cb = fileCallback
+        fileCallback = null
+        if (cb == null) return@registerForActivityResult
+        val uri = result.data?.data
+        if (result.resultCode != Activity.RESULT_OK || uri == null) {
+            cb.onReceiveValue(null)
+        } else {
+            cb.onReceiveValue(arrayOf(uri))
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,8 +58,43 @@ class MainActivity : AppCompatActivity() {
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.allowFileAccess = true
+        web.settings.allowContentAccess = true
         web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-        web.webChromeClient = WebChromeClient()
+        web.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?,
+            ): Boolean {
+                fileCallback?.onReceiveValue(null)
+                fileCallback = filePathCallback
+                val intent = try {
+                    fileChooserParams?.createIntent()
+                } catch (_: Exception) {
+                    null
+                } ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
+                    putExtra(
+                        Intent.EXTRA_MIME_TYPES,
+                        arrayOf(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            "application/vnd.ms-excel",
+                            "application/octet-stream",
+                            "*/*",
+                        ),
+                    )
+                }
+                return try {
+                    filePick.launch(Intent.createChooser(intent, "選擇 Excel"))
+                    true
+                } catch (_: Exception) {
+                    fileCallback = null
+                    filePathCallback?.onReceiveValue(null)
+                    false
+                }
+            }
+        }
         web.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
                 loader.shouldInterceptRequest(request.url)
