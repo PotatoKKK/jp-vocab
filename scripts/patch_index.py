@@ -63,13 +63,34 @@ if "if(batteryEl) batteryEl.style.display='none'" not in t:
         1,
     )
 
-# --- group word list + word detail ---
-if 'id="groupWords"' not in t:
+if '.guide{' not in t:
     t = t.replace(
         ".list{min-height:0;flex:1;overflow-y:auto}",
-        ".list{min-height:0;flex:1;overflow-y:auto}\n.word-row{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:14px 8px;font-family:\"Noto Sans TC\",sans-serif;color:inherit}\n.back-row{display:flex;align-items:center;gap:8px;margin:0 0 8px}\n.back-row .btn{padding:10px 12px;min-height:40px;flex-shrink:0}\n.detail-pos{font-family:\"Noto Sans TC\",sans-serif;font-size:13px;color:var(--muted);margin-top:8px}",
+        ".list{min-height:0;flex:1;overflow-y:auto}\n.guide{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:12px 0 16px}\n.guide-title{font-weight:600;color:var(--ink);margin:0 0 8px;font-size:15px}\n.guide p{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}\n.guide p:last-child{margin:0}\n.word-row{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:14px 8px;font-family:\"Noto Sans TC\",sans-serif;color:inherit}\n.back-row{display:flex;align-items:center;gap:8px;margin:0 0 8px}\n.back-row .btn{padding:10px 12px;min-height:40px;flex-shrink:0}\n.detail-pos{font-family:\"Noto Sans TC\",sans-serif;font-size:13px;color:var(--muted);margin-top:8px}",
         1,
     )
+
+guide_path = Path("scripts/tts_guide.html")
+if guide_path.exists() and 'id="ttsGuide"' not in t:
+    guide = guide_path.read_text(encoding="utf-8")
+    inserted = False
+    for needle_html in (
+        '<p class="hint" id="permBattery" style="display:none"></p>',
+        '<p class="hint" id="permOverlay" style="padding:0">\u986f\u793a\u5728\u5176\u4ed6\u61c9\u7528\u7a0b\u5f0f\u4e0a\u5c64\uff1a\u2026</p>',
+        '<div class="row">\n    <span>\u89e3\u9396\u6642\u986f\u793a\u55ae\u8a5e</span>',
+    ):
+        if needle_html in t:
+            if needle_html.startswith('<div class="row">'):
+                t = t.replace(needle_html, guide + needle_html, 1)
+            else:
+                t = t.replace(needle_html, needle_html + "\n" + guide, 1)
+            inserted = True
+            break
+    if not inserted:
+        print("WARN: tts guide needle not found")
+
+# --- group word list + word detail ---
+if 'id="groupWords"' not in t:
     extra_html = '''
 <section id="groupWords" class="screen">
   <div class="back-row">
@@ -96,7 +117,6 @@ if 'id="groupWords"' not in t:
 '''
     t = t.replace('</section>\n\n<section id="import"', '</section>\n' + extra_html + '<section id="import"', 1)
 
-# split title tap vs checkbox tap
 t = t.replace(
     '''      <button type="button" class="group-main">
         <span><span style="display:block;font-weight:500">${label}</span>
@@ -125,7 +145,7 @@ t = t.replace(
 if 'function openGroupWords' not in t:
     t = t.replace(
         'boot();\n</script>',
-        r'''function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+        r'''function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]))}
 function showBrowse(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='groups'));
@@ -197,4 +217,4 @@ boot();
     )
 
 p.write_text(t, encoding="utf-8")
-print("patched", p.stat().st_size, "openGroupWords" in t, "againBtn" not in t)
+print("patched", p.stat().st_size, "openGroupWords" in t, "ttsGuide" in t)
