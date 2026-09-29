@@ -26,7 +26,7 @@ class TtsSpeaker(ctx: Context) {
             tts?.setSpeechRate(0.92f)
             tts?.setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build(),
             )
@@ -46,6 +46,15 @@ class TtsSpeaker(ctx: Context) {
             return
         }
         speakNow(say)
+    }
+
+    fun stop() {
+        pending = null
+        try {
+            tts?.stop()
+        } catch (_: Exception) {
+            /* ignore */
+        }
     }
 
     private fun speakNow(text: String) {
@@ -82,7 +91,7 @@ class TtsSpeaker(ctx: Context) {
                 val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                     .setAudioAttributes(
                         AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                             .build(),
                     )

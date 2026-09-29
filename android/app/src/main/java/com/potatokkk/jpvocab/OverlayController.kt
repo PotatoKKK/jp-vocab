@@ -37,6 +37,7 @@ class OverlayController(private val appCtx: Context) {
     private fun hideInternal(fromUser: Boolean) {
         handler.removeCallbacks(retryRunnable)
         handler.removeCallbacks(autoHideRunnable)
+        try { speaker().stop() } catch (_: Exception) {}
         handler.post {
             view?.let {
                 try { wm.removeView(it) } catch (_: Exception) {}
@@ -85,6 +86,7 @@ class OverlayController(private val appCtx: Context) {
             wm.addView(v, params)
             view = v
             handler.removeCallbacks(retryRunnable)
+            try { speaker().stop() } catch (_: Exception) {}
             v.findViewById<Button>(R.id.btnClose).setOnClickListener { hideInternal(fromUser = true) }
             v.findViewById<Button>(R.id.btnNext).setOnClickListener {
                 bind(WordRepository.pick(appCtx) ?: return@setOnClickListener)
