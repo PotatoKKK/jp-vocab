@@ -51,7 +51,6 @@ t = t.replace(
     1,
 )
 
-# hide battery-optimization UI on the phone tab
 t = t.replace(
     '<p class="hint" id="permBattery" style="padding:0">\u7565\u904e\u96fb\u6c60\u512a\u5316\uff1a\u2026</p>',
     '<p class="hint" id="permBattery" style="display:none"></p>',
@@ -63,5 +62,139 @@ if "if(batteryEl) batteryEl.style.display='none'" not in t:
         "if(batteryEl) batteryEl.style.display='none';",
         1,
     )
+
+# --- group word list + word detail ---
+if 'id="groupWords"' not in t:
+    t = t.replace(
+        ".list{min-height:0;flex:1;overflow-y:auto}",
+        ".list{min-height:0;flex:1;overflow-y:auto}\n.word-row{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:14px 8px;font-family:\"Noto Sans TC\",sans-serif;color:inherit}\n.back-row{display:flex;align-items:center;gap:8px;margin:0 0 8px}\n.back-row .btn{padding:10px 12px;min-height:40px;flex-shrink:0}\n.detail-pos{font-family:\"Noto Sans TC\",sans-serif;font-size:13px;color:var(--muted);margin-top:8px}",
+        1,
+    )
+    extra_html = '''
+<section id="groupWords" class="screen">
+  <div class="back-row">
+    <button type="button" class="btn ghost" id="backGroups">返回</button>
+    <p class="hint" id="groupWordsTitle" style="padding:0;margin:0"></p>
+  </div>
+  <div class="list" id="wordList"></div>
+</section>
+<section id="wordDetail" class="screen">
+  <div class="back-row">
+    <button type="button" class="btn ghost" id="backWords">返回</button>
+    <button type="button" class="icon-btn" id="detailSpeak" aria-label="朗讀" style="margin-left:auto">♪</button>
+  </div>
+  <div class="card" id="detailCard">
+    <div class="corner"><div class="mark" id="dMark"></div><div class="trans" id="dTrans"></div></div>
+    <div class="group-tag" id="dMeta"></div>
+    <p class="kana" id="dKana"></p>
+    <p class="kanji" id="dKanji"></p>
+    <p class="zh" id="dZh"></p>
+    <p class="detail-pos" id="dPos"></p>
+    <div class="ex" id="dEx"></div>
+  </div>
+</section>
+'''
+    t = t.replace('</section>\n\n<section id="import"', '</section>\n' + extra_html + '<section id="import"', 1)
+
+# split title tap vs checkbox tap
+t = t.replace(
+    '''      <button type="button" class="group-main">
+        <span><span style="display:block;font-weight:500">${label}</span>
+        <span class="hint" style="padding:0;font-size:12px">${sub}</span></span>
+        <span class="check ${g.active?'on':''}">✓</span>
+      </button>''',
+    '''      <button type="button" class="group-main">
+        <span><span style="display:block;font-weight:500">${label}</span>
+        <span class="hint" style="padding:0;font-size:12px">${sub}</span></span>
+      </button>
+      <button type="button" class="check ${g.active?'on':''}" aria-label="勾選">✓</button>''',
+    1,
+)
+t = t.replace(
+    '''    el.querySelector('.group-main').onclick=()=>{
+      const g=state.data.groups.find(x=>x.id===id);g.active=!g.active;save();renderGroups();
+    };''',
+    '''    el.querySelector('.group-main').onclick=()=>openGroupWords(id);
+    el.querySelector('.check').onclick=e=>{
+      e.stopPropagation();
+      const g=state.data.groups.find(x=>x.id===id);g.active=!g.active;save();renderGroups();
+    };''',
+    1,
+)
+
+if 'function openGroupWords' not in t:
+    t = t.replace(
+        'boot();\n</script>',
+        r'''function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function showBrowse(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='groups'));
+  const sb=document.getElementById('speakBtn');
+  if(sb) sb.style.visibility='hidden';
+}
+function openGroupWords(id){
+  const g=state.data.groups.find(x=>x.id===id); if(!g) return;
+  state.browseGroupId=id;
+  const title=document.getElementById('groupWordsTitle');
+  if(title) title.textContent=displayGroupName(g.name)+' · '+(g.words||[]).length+' 個單詞';
+  const box=document.getElementById('wordList');
+  if(!box) return;
+  const words=g.words||[];
+  if(!words.length){box.innerHTML='<p class="hint">此課沒有單詞</p>';showBrowse('groupWords');return;}
+  box.innerHTML=words.map((w,i)=>{
+    const kana=cleanForm(w.kana)||w.kana||'';
+    const kanji=cleanForm(w.kanji);
+    const head=kanji&&kanji!==kana&&kanji!=='-'?kanji:kana;
+    const sub=[kana&&kana!==head?kana:'', w.zh].filter(Boolean).join(' · ');
+    return `<button type="button" class="word-row" data-i="${i}"><span style="display:block;font-weight:500">${esc(head||'（無）')}</span><span class="hint" style="padding:0;font-size:12px">${esc(sub)}</span></button>`;
+  }).join('');
+  box.querySelectorAll('.word-row').forEach(el=>{ el.onclick=()=>openWordDetail(+el.dataset.i); });
+  showBrowse('groupWords');
+}
+function openWordDetail(i){
+  const g=state.data.groups.find(x=>x.id===state.browseGroupId); if(!g) return;
+  const w=(g.words||[])[i]; if(!w) return;
+  state.browseWordIndex=i;
+  const kana=cleanForm(w.kana)||w.kana||'';
+  const kanji=cleanForm(w.kanji);
+  const showKanji=kanji&&kanji!==kana&&kanji!=='-';
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v||'';};
+  set('dMark',w.mark||'');
+  set('dTrans',w.trans||'');
+  set('dMeta',displayGroupName(g.name));
+  set('dKana',kana);
+  set('dKanji',showKanji?kanji:'');
+  set('dZh',w.zh||'');
+  set('dPos',w.pos||'');
+  const ex=document.getElementById('dEx');
+  if(ex){
+    if(w.exampleJp||w.exampleZh){
+      ex.innerHTML=`${w.exampleJp?`<div>${esc(w.exampleJp)}</div>`:''}${w.exampleZh?`<div class="ex-zh">${esc(w.exampleZh)}</div>`:''}`;
+    }else ex.innerHTML='';
+  }
+  showBrowse('wordDetail');
+}
+function speakBrowse(){
+  const g=state.data.groups.find(x=>x.id===state.browseGroupId); if(!g) return;
+  const w=(g.words||[])[state.browseWordIndex]; if(!w) return;
+  const btn=document.getElementById('detailSpeak');
+  if(btn) bump(btn,700);
+  const text=w.speech||w.kana||w.kanji||'';
+  const a=android();
+  if(a&&a.speak){try{a.speak(text);return}catch(e){}}
+  if(!speechSynthesis)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=.9;speechSynthesis.speak(u);
+}
+const backG=document.getElementById('backGroups');
+const backW=document.getElementById('backWords');
+const dSpeak=document.getElementById('detailSpeak');
+if(backG) backG.onclick=()=>{state.browseGroupId=null; if(typeof setTab==='function') setTab('groups'); else {document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id==='groups'));renderGroups();}};
+if(backW) backW.onclick=()=>openGroupWords(state.browseGroupId);
+if(dSpeak) dSpeak.onclick=speakBrowse;
+boot();
+</script>'''
+    )
+
 p.write_text(t, encoding="utf-8")
-print("patched", p.stat().st_size, "is-on" in t, "againBtn" not in t)
+print("patched", p.stat().st_size, "openGroupWords" in t, "againBtn" not in t)
