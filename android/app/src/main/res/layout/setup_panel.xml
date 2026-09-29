@@ -47,23 +47,6 @@
         android:textColor="@color/ink"
         android:textSize="15sp" />
 
-    <TextView
-        android:id="@+id/setupBattery"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/perm_battery_need"
-        android:textColor="@color/ink"
-        android:textSize="15sp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/setup_oem"
-        android:textColor="@color/muted"
-        android:textSize="13sp" />
-
     <View
         android:layout_width="match_parent"
         android:layout_height="0dp"

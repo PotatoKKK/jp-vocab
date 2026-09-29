@@ -28,7 +28,6 @@ t = t.replace(
 )
 t = t.replace("document.getElementById('againBtn').onclick=pickWord;\n", "")
 
-# press / playing feedback
 if ".icon-btn.is-on" not in t:
     t = t.replace(
         ".icon-btn{background:var(--paper);border:1px solid var(--line);color:var(--ink);width:40px;height:40px;border-radius:14px;box-shadow:0 1px 0 rgba(255,255,255,.55)}",
@@ -51,5 +50,18 @@ t = t.replace(
     "document.getElementById('nextBtn').onclick=()=>{bump(document.getElementById('nextBtn'),180);pickWord()};",
     1,
 )
+
+# hide battery-optimization UI on the phone tab
+t = t.replace(
+    '<p class="hint" id="permBattery" style="padding:0">\u7565\u904e\u96fb\u6c60\u512a\u5316\uff1a\u2026</p>',
+    '<p class="hint" id="permBattery" style="display:none"></p>',
+    1,
+)
+if "if(batteryEl) batteryEl.style.display='none'" not in t:
+    t = t.replace(
+        "if(batteryEl) batteryEl.textContent='\u7565\u904e\u96fb\u6c60\u512a\u5316\uff1a'+(p.battery?'\u5df2\u5141\u8a31':'\u5c1a\u672a\u5141\u8a31');",
+        "if(batteryEl) batteryEl.style.display='none';",
+        1,
+    )
 p.write_text(t, encoding="utf-8")
 print("patched", p.stat().st_size, "is-on" in t, "againBtn" not in t)

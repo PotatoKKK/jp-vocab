@@ -24,7 +24,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
     private lateinit var setup: View
     private var pendingOverlay = false
-    private var pendingBattery = false
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val notifyPerm = registerForActivityResult(
@@ -127,11 +126,6 @@ class MainActivity : AppCompatActivity() {
             continueUnlockSetup()
             return
         }
-        if (pendingBattery) {
-            pendingBattery = false
-            finishUnlockSetup(showPreview = true)
-            return
-        }
         UnlockService.sync(this)
     }
 
@@ -145,11 +139,6 @@ class MainActivity : AppCompatActivity() {
         if (!Permissions.hasOverlay(this)) {
             pendingOverlay = true
             Permissions.openOverlaySettings(this)
-            return
-        }
-        if (!Permissions.hasBatteryExemption(this)) {
-            pendingBattery = true
-            Permissions.openBatterySettings(this)
             return
         }
         finishUnlockSetup(showPreview = true)
@@ -175,11 +164,8 @@ class MainActivity : AppCompatActivity() {
     private fun refreshSetupUi() {
         if (!this::setup.isInitialized || setup.visibility != View.VISIBLE) return
         val overlayOk = Permissions.hasOverlay(this)
-        val batteryOk = Permissions.hasBatteryExemption(this)
         findViewById<TextView>(R.id.setupOverlay).text =
             getString(if (overlayOk) R.string.perm_overlay_ok else R.string.perm_overlay_need)
-        findViewById<TextView>(R.id.setupBattery).text =
-            getString(if (batteryOk) R.string.perm_battery_ok else R.string.perm_battery_need)
     }
 
     fun requestNotifications() {

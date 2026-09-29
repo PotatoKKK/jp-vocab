@@ -20,7 +20,7 @@ class WebAppInterface(private val activity: MainActivity) {
     fun hasOverlayPermission(): Boolean = Permissions.hasOverlay(activity)
 
     @JavascriptInterface
-    fun hasBatteryExemption(): Boolean = Permissions.hasBatteryExemption(activity)
+    fun hasBatteryExemption(): Boolean = true
 
     @JavascriptInterface
     fun permissionState(): String = Permissions.stateJson(activity)
@@ -39,11 +39,7 @@ class WebAppInterface(private val activity: MainActivity) {
 
     @JavascriptInterface
     fun requestBatteryExemption() {
-        activity.runOnUiThread {
-            if (!Permissions.hasBatteryExemption(activity)) {
-                Permissions.openBatterySettings(activity)
-            }
-        }
+        /* battery exemption is no longer required */
     }
 
     @JavascriptInterface
