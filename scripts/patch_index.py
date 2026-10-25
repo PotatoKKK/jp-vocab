@@ -115,7 +115,16 @@ if 'id="groupWords"' not in t:
   </div>
 </section>
 '''
-    t = t.replace('</section>\n\n<section id="import"', '</section>\n' + extra_html + '<section id="import"', 1)
+    # original has single newline between sections
+    for needle_sec in (
+        '</section>\n<section id="import"',
+        '</section>\n\n<section id="import"',
+    ):
+        if needle_sec in t:
+            t = t.replace(needle_sec, '</section>\n' + extra_html + '<section id="import"', 1)
+            break
+    else:
+        print('WARN: import section needle not found')
 
 t = t.replace(
     '''      <button type="button" class="group-main">
@@ -145,7 +154,7 @@ t = t.replace(
 if 'function openGroupWords' not in t:
     t = t.replace(
         'boot();\n</script>',
-        r'''function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+        r'''function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]))}
 function showBrowse(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='groups'));
@@ -217,4 +226,4 @@ boot();
     )
 
 p.write_text(t, encoding="utf-8")
-print("patched", p.stat().st_size, "openGroupWords" in t, "ttsGuide" in t)
+print("patched", p.stat().st_size, "openGroupWords" in t, "groupWords" in t, "ttsGuide" in t)
