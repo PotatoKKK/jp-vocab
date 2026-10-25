@@ -66,7 +66,7 @@ if "if(batteryEl) batteryEl.style.display='none'" not in t:
 if '.guide{' not in t:
     t = t.replace(
         ".list{min-height:0;flex:1;overflow-y:auto}",
-        ".list{min-height:0;flex:1;overflow-y:auto}\n.guide{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:12px 0 16px}\n.guide-title{font-weight:600;color:var(--ink);margin:0 0 8px;font-size:15px}\n.guide p{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}\n.guide p:last-child{margin:0}\n.word-row{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:14px 8px;font-family:\"Noto Sans TC\",sans-serif;color:inherit}\n.word-row:active{background:#f3e6d0}\n.back-row{display:flex;align-items:center;gap:8px;margin:0 0 8px}\n.back-row .btn{padding:10px 12px;min-height:40px;flex-shrink:0}\n.detail-pos{font-family:\"Noto Sans TC\",sans-serif;font-size:13px;color:var(--muted);margin-top:8px}\n#wordDetail .card{flex:1;display:flex;flex-direction:column;justify-content:center}\n#groupWords .list{flex:1}",
+        ".list{min-height:0;flex:1;overflow-y:auto}\n.guide{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:12px 0 16px}\n.guide-title{font-weight:600;color:var(--ink);margin:0 0 8px;font-size:15px}\n.guide p{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}\n.guide p:last-child{margin:0}\n.word-row{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:14px 8px;font-family:\"Noto Sans TC\",sans-serif;color:inherit}\n.word-row:active{background:#f3e6d0}\n.back-row{display:flex;align-items:center;gap:8px;margin:0 0 8px}\n.back-row .btn{padding:10px 12px;min-height:40px;flex-shrink:0}\n.detail-pos{font-family:\"Noto Sans TC\",sans-serif;font-size:13px;color:var(--muted);margin-top:8px}\n#wordDetail .card{flex:1;display:flex;flex-direction:column;justify-content:center}\n#groupWords .list{flex:1}\n.detail-actions{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;margin-top:14px}",
         1,
     )
 
@@ -113,9 +113,13 @@ if 'id="groupWords"' not in t:
     <p class="detail-pos" id="dPos"></p>
     <div class="ex" id="dEx"></div>
   </div>
+  <div class="detail-actions">
+    <button type="button" class="btn ghost" id="prevWordBtn">上一個</button>
+    <button type="button" class="btn primary" id="detailRevealBtn">隱藏意思</button>
+    <button type="button" class="btn ghost" id="nextWordBtn">下一個</button>
+  </div>
 </section>
 '''
-    # original has single newline between sections
     for needle_sec in (
         '</section>\n<section id="import"',
         '</section>\n\n<section id="import"',
@@ -180,10 +184,26 @@ function openGroupWords(id){
   box.querySelectorAll('.word-row').forEach(el=>{ el.onclick=()=>openWordDetail(+el.dataset.i); });
   showBrowse('groupWords');
 }
+function updateDetailNav(){
+  const g=state.data.groups.find(x=>x.id===state.browseGroupId);
+  const n=(g&&g.words||[]).length;
+  const i=state.browseWordIndex||0;
+  const prev=document.getElementById('prevWordBtn');
+  const next=document.getElementById('nextWordBtn');
+  if(prev) prev.style.visibility=i>0?'visible':'hidden';
+  if(next) next.style.visibility=i<n-1?'visible':'hidden';
+  const btn=document.getElementById('detailRevealBtn');
+  if(btn) btn.textContent=state.detailRevealed!==false?'隱藏意思':'顯示意思';
+  const zh=document.getElementById('dZh');
+  if(zh) zh.classList.toggle('hidden',state.detailRevealed===false);
+  const exz=document.querySelector('#dEx .ex-zh');
+  if(exz) exz.classList.toggle('hidden',state.detailRevealed===false);
+}
 function openWordDetail(i){
   const g=state.data.groups.find(x=>x.id===state.browseGroupId); if(!g) return;
   const w=(g.words||[])[i]; if(!w) return;
   state.browseWordIndex=i;
+  if(state.detailRevealed===undefined) state.detailRevealed=true;
   const kana=cleanForm(w.kana)||w.kana||'';
   const kanji=cleanForm(w.kanji);
   const showKanji=kanji&&kanji!==kana&&kanji!=='-';
@@ -201,6 +221,7 @@ function openWordDetail(i){
       ex.innerHTML=`${w.exampleJp?`<div>${esc(w.exampleJp)}</div>`:''}${w.exampleZh?`<div class="ex-zh">${esc(w.exampleZh)}</div>`:''}`;
     }else ex.innerHTML='';
   }
+  updateDetailNav();
   showBrowse('wordDetail');
 }
 function speakBrowse(){
@@ -218,12 +239,18 @@ function speakBrowse(){
 const backG=document.getElementById('backGroups');
 const backW=document.getElementById('backWords');
 const dSpeak=document.getElementById('detailSpeak');
+const prevBtn=document.getElementById('prevWordBtn');
+const nextBtn=document.getElementById('nextWordBtn');
+const revBtn=document.getElementById('detailRevealBtn');
 if(backG) backG.onclick=()=>{state.browseGroupId=null; if(typeof setTab==='function') setTab('groups'); else {document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id==='groups'));renderGroups();}};
 if(backW) backW.onclick=()=>openGroupWords(state.browseGroupId);
 if(dSpeak) dSpeak.onclick=speakBrowse;
+if(prevBtn) prevBtn.onclick=()=>{ if(state.browseWordIndex>0) openWordDetail(state.browseWordIndex-1); };
+if(nextBtn) nextBtn.onclick=()=>openWordDetail(state.browseWordIndex+1);
+if(revBtn) revBtn.onclick=()=>{ state.detailRevealed=state.detailRevealed===false; updateDetailNav(); };
 boot();
 </script>'''
     )
 
 p.write_text(t, encoding="utf-8")
-print("patched", p.stat().st_size, "openGroupWords" in t, "groupWords" in t, "ttsGuide" in t)
+print("patched", p.stat().st_size, "openGroupWords" in t, "groupWords" in t, "prevWordBtn" in t)
