@@ -66,7 +66,7 @@ if "if(batteryEl) batteryEl.style.display='none'" not in t:
 if '.guide{' not in t:
     t = t.replace(
         ".list{min-height:0;flex:1;overflow-y:auto}",
-        ".list{min-height:0;flex:1;overflow-y:auto}\n.guide{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:12px 0 16px}\n.guide-title{font-weight:600;color:var(--ink);margin:0 0 8px;font-size:15px}\n.guide p{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}\n.guide p:last-child{margin:0}\n.word-row{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:14px 8px;font-family:\"Noto Sans TC\",sans-serif;color:inherit}\n.back-row{display:flex;align-items:center;gap:8px;margin:0 0 8px}\n.back-row .btn{padding:10px 12px;min-height:40px;flex-shrink:0}\n.detail-pos{font-family:\"Noto Sans TC\",sans-serif;font-size:13px;color:var(--muted);margin-top:8px}",
+        ".list{min-height:0;flex:1;overflow-y:auto}\n.guide{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:12px 0 16px}\n.guide-title{font-weight:600;color:var(--ink);margin:0 0 8px;font-size:15px}\n.guide p{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}\n.guide p:last-child{margin:0}\n.word-row{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:14px 8px;font-family:\"Noto Sans TC\",sans-serif;color:inherit}\n.word-row:active{background:#f3e6d0}\n.back-row{display:flex;align-items:center;gap:8px;margin:0 0 8px}\n.back-row .btn{padding:10px 12px;min-height:40px;flex-shrink:0}\n.detail-pos{font-family:\"Noto Sans TC\",sans-serif;font-size:13px;color:var(--muted);margin-top:8px}\n#wordDetail .card{flex:1;display:flex;flex-direction:column;justify-content:center}\n#groupWords .list{flex:1}",
         1,
     )
 
@@ -89,7 +89,7 @@ if guide_path.exists() and 'id="ttsGuide"' not in t:
     if not inserted:
         print("WARN: tts guide needle not found")
 
-# --- group word list + word detail ---
+# --- group word list + full-screen word detail ---
 if 'id="groupWords"' not in t:
     extra_html = '''
 <section id="groupWords" class="screen">
@@ -145,7 +145,7 @@ t = t.replace(
 if 'function openGroupWords' not in t:
     t = t.replace(
         'boot();\n</script>',
-        r'''function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]))}
+        r'''function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showBrowse(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='groups'));
