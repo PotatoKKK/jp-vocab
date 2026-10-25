@@ -90,16 +90,22 @@ class OverlayController(private val appCtx: Context) {
             v.findViewById<Button>(R.id.btnClose).setOnClickListener { hideInternal(fromUser = true) }
             v.findViewById<Button>(R.id.btnNext).setOnClickListener {
                 bind(WordRepository.pick(appCtx) ?: return@setOnClickListener)
+                armAutoHide()
             }
             v.findViewById<Button>(R.id.btnReveal).setOnClickListener {
                 revealed = !revealed
                 render()
+                armAutoHide()
             }
             v.findViewById<View>(R.id.card).setOnClickListener {
                 revealed = !revealed
                 render()
+                armAutoHide()
             }
-            v.findViewById<View>(R.id.btnSpeak).setOnClickListener { speakCurrent() }
+            v.findViewById<View>(R.id.btnSpeak).setOnClickListener {
+                speakCurrent()
+                armAutoHide()
+            }
             bind(WordRepository.pick(appCtx))
             armAutoHide()
             onShown?.invoke()
